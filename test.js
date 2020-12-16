@@ -173,8 +173,10 @@ describe('Client', () => {
       b.addTransaction(t);
       // Finding a proof.
       miner.currentBlock = b;
-      b.proof = 0;
-      miner.findProof(true);
+      b.proof = [];
+      //miner.findProof(true);
+      miner.seal();
+
       // Receiving and verifying block
       clint.receiveBlock(b);
       assert.equal(clint.blocks.get(b.id), b);
@@ -185,7 +187,8 @@ describe('Client', () => {
       // Finding a proof.
       miner.currentBlock = b2;
       b2.proof = 0;
-      miner.findProof(true);
+      miner.seal();
+
       // Receiving and verifying block
       clint.receiveBlock(b2);
       assert.equal(clint.blocks.get(b2.id), b2);
@@ -195,8 +198,9 @@ describe('Client', () => {
       bAlt.addTransaction(t2);
       // Finding a proof.
       miner.currentBlock = bAlt;
-      bAlt.proof = 0;
-      miner.findProof(true);
+      bAlt.proof = [];
+      miner.seal();
+
       // Receiving and verifying block
       clint.receiveBlock(bAlt);
       assert.equal(clint.blocks.get(bAlt.id), bAlt);

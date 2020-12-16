@@ -24,6 +24,11 @@ const DEFAULT_TX_FEE = 1;
 // Note that the genesis block is always considered to be confirmed.
 const CONFIRMED_DEPTH = 6;
 
+//Constraints for proof-of-space
+const PROOF_VERIFIED = "PROOF_VERIFIED";
+
+let DATA_SECTOR_SIZE = Math.floor((Math.random() * 25) + 10);
+
 
 /**
  * The Blockchain class tracks configuration information and settings for the blockchain,
@@ -32,13 +37,15 @@ const CONFIRMED_DEPTH = 6;
 module.exports = class Blockchain {
   static get MISSING_BLOCK() { return MISSING_BLOCK; }
   static get POST_TRANSACTION() { return POST_TRANSACTION; }
-  static get PROOF_FOUND() { return PROOF_FOUND; }
+  //static get PROOF_FOUND() { return PROOF_FOUND; }
+  static get PROOF_VERIFIED() { return PROOF_VERIFIED; }
   static get START_MINING() { return START_MINING; }
 
   static get NUM_ROUNDS_MINING() { return NUM_ROUNDS_MINING; }
 
   // Configurable properties.
-  static get POW_TARGET() { return Blockchain.cfg.powTarget; }
+  //static get POW_TARGET() { return Blockchain.cfg.powTarget; }
+  //static get DATA_SECTOR_SIZE() { return Blockchain.cfg.dataSectorSize; }
   static get COINBASE_AMT_ALLOWED() { return Blockchain.cfg.coinbaseAmount; }
   static get DEFAULT_TX_FEE() { return Blockchain.cfg.defaultTxFee; }
   static get CONFIRMED_DEPTH() { return Blockchain.cfg.confirmedDepth; }
@@ -48,29 +55,31 @@ module.exports = class Blockchain {
    * Produces a new genesis block, giving the specified clients
    * the specified amount of starting gold.  Either clientBalanceMap
    * OR startingBalances can be specified, but not both.
-   * 
+   *
    * If clientBalanceMap is specified, then this method will also
    * set the genesis block for every client passed in.  This option
    * is useful in single-threaded mode.
-   * 
+   *
    * @param {Object} cfg - Settings for the blockchain.
    * @param {Class} cfg.blockClass - Implementation of the Block class.
    * @param {Class} cfg.transactionClass - Implementation of the Transaction class.
    * @param {Map} [cfg.clientBalanceMap] - Mapping of clients to their starting balances.
    * @param {Object} [cfg.startingBalances] - Mapping of client addresses to their starting balances.
-   * @param {number} [cfg.powLeadingZeroes] - Number of leading zeroes required for a valid proof-of-work.
+   * @param {number} [cfg.powLeadingZeroes] - Number of leading zeroes required for a valid proof-of-work. Unused for this project
+   * @param {number} [cfg.dataSectorSize] - Size of the data sector (blockchain portion) used for the proof
    * @param {number} [cfg.coinbaseAmount] - Amount of gold awarded to a miner for creating a block.
    * @param {number} [cfg.defaultTxFee] - Amount of gold awarded to a miner for accepting a transaction,
    *    if not overridden by the client.
    * @param {number} [cfg.confirmedDepth] - Number of blocks required after a block before it is
    *    considered confirmed.
-   * 
+   *
    * @returns {Block} - The genesis block.
    */
   static makeGenesis({
     blockClass,
     transactionClass,
     powLeadingZeroes = POW_LEADING_ZEROES,
+    dataSectorSize = DATA_SECTOR_SIZE,
     coinbaseAmount = COINBASE_AMT_ALLOWED,
     defaultTxFee = DEFAULT_TX_FEE,
     confirmedDepth = CONFIRMED_DEPTH,
@@ -83,9 +92,9 @@ module.exports = class Blockchain {
     }
 
     // Setting blockchain configuration
-    Blockchain.cfg = { blockClass, transactionClass, coinbaseAmount, defaultTxFee, confirmedDepth };
-    Blockchain.cfg.powTarget = POW_BASE_TARGET.shiftRight(powLeadingZeroes);
-    
+    Blockchain.cfg = { blockClass, transactionClass, dataSectorSize, coinbaseAmount, defaultTxFee, confirmedDepth };
+    //Blockchain.cfg.powTarget = POW_BASE_TARGET.shiftRight(powLeadingZeroes);
+
     // If startingBalances was specified, we initialize our balances to that object.
     let balances = startingBalances || {};
 
@@ -115,9 +124,9 @@ module.exports = class Blockchain {
 
   /**
    * Converts a string representation of a block to a new Block instance.
-   * 
+   *
    * @param {Object} o - An object representing a block, but not necessarily an instance of Block.
-   * 
+   *
    * @returns {Block}
    */
   static deserializeBlock(o) {
@@ -159,7 +168,13 @@ module.exports = class Blockchain {
     } else {
       return new Blockchain.cfg.transactionClass(o);
     }
-    
+
+  }
+
+  static changeDataSectorSize(){
+    DATA_SECTOR_SIZE = Math.floor((Math.random() * 25) + 10);
+    Blockchain.cfg.dataSectorSize = DATA_SECTOR_SIZE;
+    return DATA_SECTOR_SIZE;
   }
 
 };

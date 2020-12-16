@@ -7,6 +7,7 @@ const Miner = require('./miner.js');
 const Transaction = require('./transaction.js');
 
 const FakeNet = require('./fakeNet.js');
+const FakeMemory = require('./fakeMemory.js');
 const utils = require('./utils.js');
 
 module.exports = {
@@ -16,5 +17,6 @@ module.exports = {
   Miner: Miner,
   Transaction: Transaction,
   FakeNet: FakeNet,
+  FakeMemory: FakeMemory,
   utils: utils,
 };

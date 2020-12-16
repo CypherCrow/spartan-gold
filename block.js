@@ -15,15 +15,17 @@ module.exports = class Block {
   /**
    * Creates a new Block.  Note that the previous block will not be stored;
    * instead, its hash value will be maintained in this block.
-   * 
+   *
    * @constructor
    * @param {String} rewardAddr - The address to receive all mining rewards for this block.
    * @param {Block} [prevBlock] - The previous block in the blockchain.
-   * @param {Number} [target] - The POW target.  The miner must find a proof that
-   *      produces a smaller value when hashed.
+   * @param {Number} [target] - The size of the data sector for the proof.
+   *      (OLD: The POW target.  The miner must find a proof that
+   *      produces a smaller value when hashed.)
    * @param {Number} [coinbaseReward] - The gold that a miner earns for finding a block proof.
    */
-  constructor(rewardAddr, prevBlock, target=Blockchain.POW_TARGET, coinbaseReward=Blockchain.COINBASE_AMT_ALLOWED) {
+  //original target default value: Blockchain.POW_TARGET
+  constructor(rewardAddr, prevBlock, target=Blockchain.DATA_SECTOR_SIZE, coinbaseReward=Blockchain.COINBASE_AMT_ALLOWED) {
     this.prevBlockHash = prevBlock ? prevBlock.hashVal() : null;
     this.target = target;
 
@@ -68,7 +70,7 @@ module.exports = class Block {
 
   /**
    * Determines whether the block is the beginning of the chain.
-   * 
+   *
    * @returns {Boolean} - True if this is the first block in the chain.
    */
   isGenesisBlock() {
@@ -78,19 +80,32 @@ module.exports = class Block {
   /**
    * Returns true if the hash of the block is less than the target
    * proof of work value.
-   * 
+   *
    * @returns {Boolean} - True if the block has a valid proof.
-   */
   hasValidProof() {
     let h = utils.hash(this.serialize());
     let n = new BigInteger(h, 16);
     return n.compareTo(this.target) < 0;
   }
+  */
+
+  /**
+  * Returns true if the random string is not empty, equal to DATA_SECTOR_SIZE
+  * and memAddress is not empty
+  *
+  * @returns {Boolean} - True if the block has a valid proof
+  */
+  hasValidProof(){
+    return this.proof.string !== undefined
+      && this.proof.string.length === this.target
+      && utils.verifySignature(this.proof.pubKey, this.proof.string, this.proof.signedString)
+      && this.proof.memAddress !== undefined;
+  }
 
   /**
    * Converts a Block into string form.  Some fields are deliberately omitted.
    * Note that Block.deserialize plus block.rerun should restore the block.
-   * 
+   *
    * @returns {String} - The block in JSON format.
    */
   serialize() {
@@ -157,7 +172,7 @@ module.exports = class Block {
    * Returns the cryptographic hash of the current block.
    * The block is first converted to its serial form, so
    * any unimportant fields are ignored.
-   * 
+   *
    * @returns {String} - cryptographic hash of the block.
    */
   hashVal() {
@@ -166,7 +181,7 @@ module.exports = class Block {
 
   /**
    * Returns the hash of the block as its id.
-   * 
+   *
    * @returns {String} - A unique ID for the block.
    */
   get id() {
@@ -175,10 +190,10 @@ module.exports = class Block {
 
   /**
    * Accepts a new transaction if it is valid and adds it to the block.
-   * 
+   *
    * @param {Transaction} tx - The transaction to add to the block.
    * @param {Client} [client] - A client object, for logging useful messages.
-   * 
+   *
    * @returns {Boolean} - True if the transaction was added successfully.
    */
   addTransaction(tx, client) {
@@ -232,9 +247,9 @@ module.exports = class Block {
    * and re-adding all transactions.  This process also identifies if any transactions were
    * invalid due to insufficient funds or replayed transactions, in which case the block
    * should be rejected.
-   * 
+   *
    * @param {Block} prevBlock - The previous block in the blockchain, used for initial balances.
-   * 
+   *
    * @returns {Boolean} - True if the block's transactions are all valid.
    */
   rerun(prevBlock) {
@@ -262,9 +277,9 @@ module.exports = class Block {
    * Note that this amount is a snapshot in time - IF the block is
    * accepted by the network, ignoring any pending transactions,
    * this is the amount of funds available to the client.
-   * 
+   *
    * @param {String} addr - Address of a client.
-   * 
+   *
    * @returns {Number} - The available gold for the specified user.
    */
   balanceOf(addr) {
@@ -275,9 +290,9 @@ module.exports = class Block {
    * The total amount of gold paid to the miner who produced this block,
    * if the block is accepted.  This includes both the coinbase transaction
    * and any transaction fees.
-   * 
+   *
    * @returns {Number} Total reward in gold for the user.
-   * 
+   *
    */
   totalRewards() {
     return [...this.transactions].reduce(

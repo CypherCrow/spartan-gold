@@ -16,7 +16,7 @@ module.exports = class Client extends EventEmitter {
    * The net object determines how the client communicates
    * with other entities in the system. (This approach allows us to
    * simplify our testing setup.)
-   * 
+   *
    * @constructor
    * @param {Object} obj - The properties of the client.
    * @param {String} [obj.name] - The client's name, used for debugging messages.
@@ -63,14 +63,15 @@ module.exports = class Client extends EventEmitter {
     }
 
     // Setting up listeners to receive messages from other clients.
-    this.on(Blockchain.PROOF_FOUND, this.receiveBlock);
+    //this.on(Blockchain.PROOF_FOUND, this.receiveBlock);
+    this.on(Blockchain.PROOF_VERIFIED, this.receiveBlock);
     this.on(Blockchain.MISSING_BLOCK, this.provideMissingBlock);
   }
 
   /**
    * The genesis block can only be set if the client does not already
    * have the genesis block.
-   * 
+   *
    * @param {Block} startingBlock - The genesis block of the blockchain.
    */
   setGenesisBlock(startingBlock) {
@@ -118,11 +119,11 @@ module.exports = class Client extends EventEmitter {
    * Broadcasts a transaction from the client giving gold to the clients
    * specified in 'outputs'. A transaction fee may be specified, which can
    * be more or less than the default value.
-   * 
+   *
    * @param {Array} outputs - The list of outputs of other addresses and
    *    amounts to pay.
    * @param {number} [fee] - The transaction fee reward to pay the miner.
-   * 
+   *
    * @returns {Transaction} - The posted transaction.
    */
   postTransaction(outputs, fee=Blockchain.DEFAULT_TX_FEE) {
@@ -161,13 +162,13 @@ module.exports = class Client extends EventEmitter {
    * update the gold balances for all clients.  If any transactions are found to be
    * invalid due to lack of funds, the block is rejected and 'null' is returned to
    * indicate failure.
-   * 
+   *
    * If any blocks cannot be connected to an existing block but seem otherwise valid,
    * they are added to a list of pending blocks and a request is sent out to get the
    * missing blocks from other clients.
-   * 
+   *
    * @param {Block | Object} block - The block to add to the clients list of available blocks.
-   * 
+   *
    * @returns {Block | null} The block with rerun transactions, or null for an invalid block.
    */
   receiveBlock(block) {
@@ -177,7 +178,7 @@ module.exports = class Client extends EventEmitter {
     // Ignore the block if it has been received previously.
     if (this.blocks.has(block.id)) return null;
 
-    // First, make sure that the block has a valid proof. 
+    // First, make sure that the block has a valid proof.
     if (!block.hasValidProof() && !block.isGenesisBlock()) {
       this.log(`Block ${block.id} does not have a valid proof.`);
       return null;
@@ -191,7 +192,7 @@ module.exports = class Client extends EventEmitter {
 
       // If this is the first time that we have identified this block as missing,
       // send out a request for the block.
-      if (stuckBlocks === undefined) { 
+      if (stuckBlocks === undefined) {
         this.requestMissingBlock(block);
         stuckBlocks = new Set();
       }
@@ -233,7 +234,7 @@ module.exports = class Client extends EventEmitter {
 
   /**
    * Request the previous block from the network.
-   * 
+   *
    * @param {Block} block - The block that is connected to a missing block.
    */
   requestMissingBlock(block) {
@@ -258,7 +259,7 @@ module.exports = class Client extends EventEmitter {
    * Takes an object representing a request for a misssing block.
    * If the client has the block, it will send the block to the
    * client that requested it.
-   * 
+   *
    * @param {Object} msg - Request for a missing block.
    * @param {String} msg.missing - ID of the missing block.
    */
@@ -266,7 +267,8 @@ module.exports = class Client extends EventEmitter {
     if (this.blocks.has(msg.missing)) {
       this.log(`Providing missing block ${msg.missing}`);
       let block = this.blocks.get(msg.missing);
-      this.net.sendMessage(msg.from, Blockchain.PROOF_FOUND, block);
+      //this.net.sendMessage(msg.from, Blockchain.PROOF_FOUND, block);
+      this.net.sendMessage(msg.from, Blockchain.PROOF_VERIFIED, block);
     }
   }
 
@@ -304,12 +306,12 @@ module.exports = class Client extends EventEmitter {
       console.log(`    ${id}: ${balance}`);
     }
   }
- 
+
   /**
    * Logs messages to stdout, including the name to make debugging easier.
    * If the client does not have a name, then one is calculated from the
    * client's address.
-   * 
+   *
    * @param {String} msg - The message to display to the console.
    */
   log(msg) {
