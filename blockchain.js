@@ -7,6 +7,7 @@ const MISSING_BLOCK = "MISSING_BLOCK";
 const POST_TRANSACTION = "POST_TRANSACTION";
 const PROOF_FOUND = "PROOF_FOUND";
 const START_MINING = "START_MINING";
+const PROOF_SENT = "PROOF_SENT";
 
 // Constants for mining
 const NUM_ROUNDS_MINING = 2000;
@@ -24,7 +25,8 @@ const DEFAULT_TX_FEE = 1;
 // Note that the genesis block is always considered to be confirmed.
 const CONFIRMED_DEPTH = 6;
 
-
+//variable for size of data sector to send as proof
+let DATA_SECTOR_SIZE = Math.floor((Math.random() * 7) + 1);
 /**
  * The Blockchain class tracks configuration information and settings for the blockchain,
  * as well as some utility methods to allow for easy extensibility.
@@ -38,7 +40,8 @@ module.exports = class Blockchain {
   static get NUM_ROUNDS_MINING() { return NUM_ROUNDS_MINING; }
 
   // Configurable properties.
-  static get POW_TARGET() { return Blockchain.cfg.powTarget; }
+  //static get POW_TARGET() { return Blockchain.cfg.powTarget; }
+  static get DATA_SECTOR_SIZE() { return Blockchain.cfg.dataSectorSize; }
   static get COINBASE_AMT_ALLOWED() { return Blockchain.cfg.coinbaseAmount; }
   static get DEFAULT_TX_FEE() { return Blockchain.cfg.defaultTxFee; }
   static get CONFIRMED_DEPTH() { return Blockchain.cfg.confirmedDepth; }
@@ -48,11 +51,11 @@ module.exports = class Blockchain {
    * Produces a new genesis block, giving the specified clients
    * the specified amount of starting gold.  Either clientBalanceMap
    * OR startingBalances can be specified, but not both.
-   * 
+   *
    * If clientBalanceMap is specified, then this method will also
    * set the genesis block for every client passed in.  This option
    * is useful in single-threaded mode.
-   * 
+   *
    * @param {Object} cfg - Settings for the blockchain.
    * @param {Class} cfg.blockClass - Implementation of the Block class.
    * @param {Class} cfg.transactionClass - Implementation of the Transaction class.
@@ -64,13 +67,14 @@ module.exports = class Blockchain {
    *    if not overridden by the client.
    * @param {number} [cfg.confirmedDepth] - Number of blocks required after a block before it is
    *    considered confirmed.
-   * 
+   *
    * @returns {Block} - The genesis block.
    */
   static makeGenesis({
     blockClass,
     transactionClass,
-    powLeadingZeroes = POW_LEADING_ZEROES,
+    dataSectorSize = DATA_SECTOR_SIZE,
+    //powLeadingZeroes = POW_LEADING_ZEROES,
     coinbaseAmount = COINBASE_AMT_ALLOWED,
     defaultTxFee = DEFAULT_TX_FEE,
     confirmedDepth = CONFIRMED_DEPTH,
@@ -84,8 +88,8 @@ module.exports = class Blockchain {
 
     // Setting blockchain configuration
     Blockchain.cfg = { blockClass, transactionClass, coinbaseAmount, defaultTxFee, confirmedDepth };
-    Blockchain.cfg.powTarget = POW_BASE_TARGET.shiftRight(powLeadingZeroes);
-    
+    Blockchain.cfg.powTarget = POW_BASE_TARGET.shiftRight(dataSectorSize); //change this
+
     // If startingBalances was specified, we initialize our balances to that object.
     let balances = startingBalances || {};
 
@@ -115,9 +119,9 @@ module.exports = class Blockchain {
 
   /**
    * Converts a string representation of a block to a new Block instance.
-   * 
+   *
    * @param {Object} o - An object representing a block, but not necessarily an instance of Block.
-   * 
+   *
    * @returns {Block}
    */
   static deserializeBlock(o) {
@@ -159,7 +163,7 @@ module.exports = class Blockchain {
     } else {
       return new Blockchain.cfg.transactionClass(o);
     }
-    
+
   }
 
 };

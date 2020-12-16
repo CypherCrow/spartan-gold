@@ -11,7 +11,7 @@ module.exports = class Miner extends Client {
   /**
    * When a new miner is created, but the PoW search is **not** yet started.
    * The initialize method kicks things off.
-   * 
+   *
    * @constructor
    * @param {Object} obj - The properties of the client.
    * @param {String} [obj.name] - The miner's name, used for debugging messages.
@@ -42,7 +42,7 @@ module.exports = class Miner extends Client {
 
   /**
    * Sets up the miner to start searching for a new block.
-   * 
+   *
    * @param {Set} [txSet] - Transactions the miner has that have not been accepted yet.
    */
   startNewSearch(txSet=new Set()) {
@@ -57,10 +57,10 @@ module.exports = class Miner extends Client {
   /**
    * Looks for a "proof".  It breaks after some time to listen for messages.  (We need
    * to do this since JS does not support concurrency).
-   * 
+   *
    * The 'oneAndDone' field is used for testing only; it prevents the findProof method
    * from looking for the proof again after the first attempt.
-   * 
+   *
    * @param {boolean} oneAndDone - Give up after the first PoW search (testing only).
    */
   findProof(oneAndDone=false) {
@@ -73,13 +73,27 @@ module.exports = class Miner extends Client {
         this.startNewSearch();
         break;
       }
-      this.currentBlock.proof++;
+      this.currentBlock.proof++; //need to configure this proof to store data portion
     }
     // If we are testing, don't continue the search.
     if (!oneAndDone) {
       // Check if anyone has found a block, and then return to mining.
       setTimeout(() => this.emit(Blockchain.START_MINING), 0);
     }
+  }
+
+  /**
+  * New findProof() method called sendProof(), except configured to handle proof-of-spacetime
+  * this.blocks will be sliced according to the index of this.currentBlock and the difference between such as this.sectorSize
+  * @param {boolean} sentAndDone same implementation as that of the original findProof()
+  */
+
+  sendProof(sentAndDone=False){
+    let lastPos = this.currentBlock.chainLength - 1;
+    let startPos = lastPos - this.sectorSize;
+    let proof = this.blocks.slice(startPos, lastPos);
+
+    this.net.broadcast(Blockchain.PROOF_SENT, proof);
   }
 
   /**
@@ -93,7 +107,7 @@ module.exports = class Miner extends Client {
    * Receives a block from another miner. If it is valid,
    * the block will be stored. If it is also a longer chain,
    * the miner will accept it and replace the currentBlock.
-   * 
+   *
    * @param {Block | Object} b - The block
    */
   receiveBlock(s) {
@@ -115,9 +129,9 @@ module.exports = class Miner extends Client {
    * any transactions from the rolled-back blocks), remove any transactions
    * already included in the newly accepted blocks, and add any remaining
    * transactions to the new block.
-   * 
+   *
    * @param {Block} nb - The newly accepted block.
-   * 
+   *
    * @returns {Set} - The set of transactions that have not yet been accepted by the new block.
    */
   syncTransactions(nb) {
@@ -151,7 +165,7 @@ module.exports = class Miner extends Client {
   /**
    * Returns false if transaction is not accepted. Otherwise adds
    * the transaction to the current block.
-   * 
+   *
    * @param {Transaction | String} tx - The transaction to add.
    */
   addTransaction(tx) {

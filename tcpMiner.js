@@ -96,7 +96,7 @@ class TcpMiner extends Miner {
   showPendingOut() {
     let s = "";
     this.pendingOutgoingTransactions.forEach((tx) => {
-      s += `\n    id:${tx.id} nonce:${tx.nonce} totalOutput: ${tx.totalOutput()}\n`;
+      s += `\n    id:${tx.id} sectorSize:${tx.sectorSize} totalOutput: ${tx.totalOutput()}\n`;
     });
     return s;
   }

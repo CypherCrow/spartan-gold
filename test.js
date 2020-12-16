@@ -37,7 +37,7 @@ describe('utils', () => {
 describe("Transaction", () => {
   let outputs = [{amount: 20, address: "ffff"},
                  {amount: 40, address: "face"}];
-  let t = new Transaction({from: addr, pubKey: kp.public, outputs: outputs, fee: 1, nonce: 1});
+  let t = new Transaction({from: addr, pubKey: kp.public, outputs: outputs, fee: 1, sectorSize: 1});
   t.sign(kp.private);
 
   describe("#totalOutput", () => {
@@ -53,7 +53,7 @@ describe('Block', () => {
   prevBlock.balances = new Map([ [addr, 500], ["ffff", 100], ["face", 99] ]);
 
   let outputs = [{amount: 20, address: "ffff"}, {amount: 40, address: "face"}];
-  let t = new Transaction({from: addr, pubKey: kp.public, outputs: outputs, fee: 1, nonce: 0});
+  let t = new Transaction({from: addr, pubKey: kp.public, outputs: outputs, fee: 1, sectorSize: 0});
 
   describe('#addTransaction', () => {
     it("should fail if a transaction is not signed.", () => {
@@ -146,11 +146,11 @@ describe('Client', () => {
   let net = { broadcast: function(){} };
 
   let outputs = [{amount: 20, address: "ffff"}, {amount: 40, address: "face"}];
-  let t = new Transaction({from: addr, pubKey: kp.public, outputs: outputs, fee: 1, nonce: 0});
+  let t = new Transaction({from: addr, pubKey: kp.public, outputs: outputs, fee: 1, sectorSize: 0});
   t.sign(kp.private);
 
   let outputs2 = [{amount: 10, address: "face"}];
-  let t2 = new Transaction({from: addr, pubKey: kp.public, outputs: outputs2, fee: 1, nonce: 1});
+  let t2 = new Transaction({from: addr, pubKey: kp.public, outputs: outputs2, fee: 1, sectorSize: 1});
   t2.sign(kp.private);
 
   let clint = new Client({net: net, startingBlock: genesis});

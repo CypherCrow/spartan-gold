@@ -15,7 +15,7 @@ module.exports = class Block {
   /**
    * Creates a new Block.  Note that the previous block will not be stored;
    * instead, its hash value will be maintained in this block.
-   * 
+   *
    * @constructor
    * @param {String} rewardAddr - The address to receive all mining rewards for this block.
    * @param {Block} [prevBlock] - The previous block in the blockchain.
@@ -23,14 +23,14 @@ module.exports = class Block {
    *      produces a smaller value when hashed.
    * @param {Number} [coinbaseReward] - The gold that a miner earns for finding a block proof.
    */
-  constructor(rewardAddr, prevBlock, target=Blockchain.POW_TARGET, coinbaseReward=Blockchain.COINBASE_AMT_ALLOWED) {
+  constructor(rewardAddr, prevBlock, target=Blockchain.DATA_SECTOR_SIZE, coinbaseReward=Blockchain.COINBASE_AMT_ALLOWED) {
     this.prevBlockHash = prevBlock ? prevBlock.hashVal() : null;
     this.target = target;
 
-    // Get the balances and nonces from the previous block, if available.
-    // Note that balances and nonces are NOT part of the serialized format.
+    // Get the balances and sectorSizes from the previous block, if available.
+    // Note that balances and sectorSizes are NOT part of the serialized format.
     this.balances = prevBlock ? new Map(prevBlock.balances) : new Map();
-    this.nextNonce = prevBlock ? new Map(prevBlock.nextNonce) : new Map();
+    this.nextsectorSize = prevBlock ? new Map(prevBlock.nextsectorSize) : new Map();
 
     if (prevBlock && prevBlock.rewardAddr) {
       // Add the previous block's rewards to the miner who found the proof.
@@ -68,7 +68,7 @@ module.exports = class Block {
 
   /**
    * Determines whether the block is the beginning of the chain.
-   * 
+   *
    * @returns {Boolean} - True if this is the first block in the chain.
    */
   isGenesisBlock() {
@@ -78,7 +78,7 @@ module.exports = class Block {
   /**
    * Returns true if the hash of the block is less than the target
    * proof of work value.
-   * 
+   *
    * @returns {Boolean} - True if the block has a valid proof.
    */
   hasValidProof() {
@@ -90,7 +90,7 @@ module.exports = class Block {
   /**
    * Converts a Block into string form.  Some fields are deliberately omitted.
    * Note that Block.deserialize plus block.rerun should restore the block.
-   * 
+   *
    * @returns {String} - The block in JSON format.
    */
   serialize() {
@@ -147,7 +147,8 @@ module.exports = class Block {
       // Other blocks must specify transactions and proof details.
       o.transactions = Array.from(this.transactions.entries());
       o.prevBlockHash = this.prevBlockHash;
-      o.proof = this.proof;
+      //o.proof = this.proof
+      o.sectorSize = this.sectorSize;
       o.rewardAddr = this.rewardAddr;
     }
     return o;
@@ -157,7 +158,7 @@ module.exports = class Block {
    * Returns the cryptographic hash of the current block.
    * The block is first converted to its serial form, so
    * any unimportant fields are ignored.
-   * 
+   *
    * @returns {String} - cryptographic hash of the block.
    */
   hashVal() {
@@ -166,7 +167,7 @@ module.exports = class Block {
 
   /**
    * Returns the hash of the block as its id.
-   * 
+   *
    * @returns {String} - A unique ID for the block.
    */
   get id() {
@@ -175,10 +176,10 @@ module.exports = class Block {
 
   /**
    * Accepts a new transaction if it is valid and adds it to the block.
-   * 
+   *
    * @param {Transaction} tx - The transaction to add to the block.
    * @param {Client} [client] - A client object, for logging useful messages.
-   * 
+   *
    * @returns {Boolean} - True if the transaction was added successfully.
    */
   addTransaction(tx, client) {
@@ -196,18 +197,18 @@ module.exports = class Block {
       return false;
     }
 
-    // Checking and updating nonce value.
+    // Checking and updating sectorSize value.
     // This portion prevents replay attacks.
-    let nonce = this.nextNonce.get(tx.from) || 0;
-    if (tx.nonce < nonce) {
+    let sectorSize = this.nextsectorSize.get(tx.from) || 0;
+    if (tx.sectorSize < sectorSize) {
       if (client) client.log(`Replayed transaction ${tx.id}.`);
       return false;
-    } else if (tx.nonce > nonce) {
+    } else if (tx.sectorSize > sectorSize) {
       // FIXME: Need to do something to handle this case more gracefully.
       if (client) client.log(`Out of order transaction ${tx.id}.`);
       return false;
     } else {
-      this.nextNonce.set(tx.from, nonce + 1);
+      this.nextsectorSize.set(tx.from, sectorSize + 1);
     }
 
     // Adding the transaction to the block
@@ -228,19 +229,19 @@ module.exports = class Block {
 
   /**
    * When a block is received from another party, it does not include balances or a record of
-   * the latest nonces for each client.  This method restores this information be wiping out
+   * the latest sectorSizes for each client.  This method restores this information be wiping out
    * and re-adding all transactions.  This process also identifies if any transactions were
    * invalid due to insufficient funds or replayed transactions, in which case the block
    * should be rejected.
-   * 
+   *
    * @param {Block} prevBlock - The previous block in the blockchain, used for initial balances.
-   * 
+   *
    * @returns {Boolean} - True if the block's transactions are all valid.
    */
   rerun(prevBlock) {
     // Setting balances to the previous block's balances.
     this.balances = new Map(prevBlock.balances);
-    this.nextNonce = new Map(prevBlock.nextNonce);
+    this.nextsectorSize = new Map(prevBlock.nextsectorSize);
 
     // Adding coinbase reward for prevBlock.
     let winnerBalance = this.balanceOf(prevBlock.rewardAddr);
@@ -262,9 +263,9 @@ module.exports = class Block {
    * Note that this amount is a snapshot in time - IF the block is
    * accepted by the network, ignoring any pending transactions,
    * this is the amount of funds available to the client.
-   * 
+   *
    * @param {String} addr - Address of a client.
-   * 
+   *
    * @returns {Number} - The available gold for the specified user.
    */
   balanceOf(addr) {
@@ -275,9 +276,9 @@ module.exports = class Block {
    * The total amount of gold paid to the miner who produced this block,
    * if the block is accepted.  This includes both the coinbase transaction
    * and any transaction fees.
-   * 
+   *
    * @returns {Number} Total reward in gold for the user.
-   * 
+   *
    */
   totalRewards() {
     return [...this.transactions].reduce(
